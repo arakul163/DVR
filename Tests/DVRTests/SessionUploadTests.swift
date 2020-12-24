@@ -17,8 +17,7 @@ class SessionUploadTests: XCTestCase {
     }()
 
     func testUploadFile() {
-        let session = Session(cassetteName: "upload-file")
-        session.recordingEnabled = false
+        let session = Session(cassetteName: "upload-file", recordsDirectory: "Resources/Records")
         let expectation = self.expectation(description: "Network")
 
         let data = encodeMultipartBody(try! Data(contentsOf: testFile), parameters: [:])
@@ -42,8 +41,7 @@ class SessionUploadTests: XCTestCase {
     }
 
     func testUploadData() {
-        let session = Session(cassetteName: "upload-data")
-        session.recordingEnabled = false
+        let session = Session(cassetteName: "upload-data", recordsDirectory: "Resources/Records")
         let expectation = self.expectation(description: "Network")
 
         let data = encodeMultipartBody(try! Data(contentsOf: testFile), parameters: [:])

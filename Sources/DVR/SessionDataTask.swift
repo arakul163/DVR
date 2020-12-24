@@ -59,30 +59,20 @@ final class SessionDataTask: URLSessionDataTask {
             fatalError("[DVR] Invalid request. The request was not found in the cassette.")
         }
 
-        // Cassette is missing. Record.
-        if session.recordingEnabled == false {
-            fatalError("[DVR] Recording is disabled.")
-        }
-
-        let task = session.backingSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
-
+        let task = session.backingSession.dataTask(with: request, completionHandler: { [self] data, response, error in
             //Ensure we have a response
             guard let response = response else {
                 fatalError("[DVR] Failed to record because the task returned a nil response.")
             }
 
-            guard let this = self else {
-                fatalError("[DVR] Something has gone horribly wrong.")
-            }
-
             // Still call the completion block so the user can chain requests while recording.
-            this.queue.async {
-                this.completion?(data, response, nil)
+            queue.async {
+                completion?(data, response, nil)
             }
 
             // Create interaction
-            this.interaction = Interaction(request: this.request, response: response, responseData: data)
-            this.session.finishTask(this, interaction: this.interaction!, playback: false)
+            interaction = Interaction(request: request, response: response, responseData: data)
+            session.finishTask(self, interaction: interaction!, playback: false)
         })
         task.resume()
     }

@@ -3,17 +3,9 @@ import Foundation
 open class Session: URLSession {
 
     // MARK: - Properties
-
-    public static var defaultTestBundle: Bundle? {
-        return Bundle.allBundles.first { $0.bundlePath.hasSuffix(".xctest") }
-    }
-
-    open var outputDirectory: String
     public let cassetteName: String
+    public let recordsDirectory: String
     public let backingSession: URLSession
-    open var recordingEnabled = true
-
-    private let testBundle: Bundle
 
     private var recording = false
     private var needsPersistence = false
@@ -27,14 +19,16 @@ open class Session: URLSession {
 
     // MARK: - Initializers
 
-    public init(outputDirectory: String = "~/Desktop/DVR/", cassetteName: String, testBundle: Bundle = Session.defaultTestBundle!, backingSession: URLSession = URLSession.shared) {
-        self.outputDirectory = outputDirectory
+    public init(
+        cassetteName: String,
+        recordsDirectory: String,
+        backingSession: URLSession = URLSession.shared
+    ) {
         self.cassetteName = cassetteName
-        self.testBundle = testBundle
+        self.recordsDirectory = recordsDirectory
         self.backingSession = backingSession
         super.init()
     }
-
 
     // MARK: - URLSession
     
@@ -122,13 +116,17 @@ open class Session: URLSession {
     // MARK: - Internal
 
     var cassette: Cassette? {
-        guard let path = testBundle.path(forResource: cassetteName, ofType: "json"),
-            let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-            let raw = try? JSONSerialization.jsonObject(with: data, options: []),
-            let json = raw as? [String: Any]
-        else { return nil }
-
-        return Cassette(dictionary: json)
+        do {
+            let expandedRecordsDirectory = (recordsDirectory as NSString).expandingTildeInPath
+            let cassetteUrl = URL(fileURLWithPath: expandedRecordsDirectory)
+                .appendingPathComponent(cassetteName)
+                .appendingPathExtension("json")
+            let data = try Data(contentsOf: cassetteUrl)
+            let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+            return dictionary.flatMap { Cassette(dictionary: $0) }
+        } catch {
+            return nil
+        }
     }
 
     func finishTask(_ task: URLSessionTask, interaction: Interaction, playback: Bool) {
@@ -192,12 +190,8 @@ open class Session: URLSession {
     }
 
     private func persist(_ interactions: [Interaction]) {
-        defer {
-            abort()
-        }
-
         // Create directory
-        let outputDirectory = (self.outputDirectory as NSString).expandingTildeInPath
+        let outputDirectory = (self.recordsDirectory as NSString).expandingTildeInPath
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: outputDirectory) {
             do {
@@ -207,11 +201,8 @@ open class Session: URLSession {
             }
         }
 
-        let cassette = Cassette(name: cassetteName, interactions: interactions)
-
         // Persist
-
-
+        let cassette = Cassette(name: cassetteName, interactions: interactions)
         do {
             let outputPath = ((outputDirectory as NSString).appendingPathComponent(cassetteName) as NSString).appendingPathExtension("json")!
             let data = try JSONSerialization.data(withJSONObject: cassette.dictionary, options: [.prettyPrinted])

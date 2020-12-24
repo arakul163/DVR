@@ -7,7 +7,11 @@ class SessionTests: XCTestCase {
         let configuration = URLSessionConfiguration.default
         configuration.httpAdditionalHeaders = ["testSessionHeader": "testSessionHeaderValue"]
         let backingSession = URLSession(configuration: configuration)
-        return Session(cassetteName: "example", backingSession: backingSession)
+        return Session(
+            cassetteName: "example",
+            recordsDirectory: "Resources/Records",
+            backingSession: backingSession
+        )
     }()
 
     let request = URLRequest(url: URL(string: "http://example.com")!)
@@ -71,7 +75,6 @@ class SessionTests: XCTestCase {
     }
 
     func testPlayback() {
-        session.recordingEnabled = false
         let expectation = self.expectation(description: "Network")
 
         session.dataTask(with: request, completionHandler: { data, response, error in
@@ -87,8 +90,7 @@ class SessionTests: XCTestCase {
     }
 
     func testTextPlayback() {
-        let session = Session(cassetteName: "text")
-        session.recordingEnabled = false
+        let session = Session(cassetteName: "text", recordsDirectory: "Resources/Records")
 
         var request = URLRequest(url: URL(string: "http://example.com")!)
         request.httpMethod = "POST"
@@ -111,10 +113,7 @@ class SessionTests: XCTestCase {
 
     func testDownload() {
         let expectation = self.expectation(description: "Network")
-
-        let session = Session(cassetteName: "json-example")
-        session.recordingEnabled = false
-
+        let session = Session(cassetteName: "json-example", recordsDirectory: "Resources/Records")
         let request = URLRequest(url: URL(string: "https://www.howsmyssl.com/a/check")!)
 
         session.downloadTask(with: request, completionHandler: { location, response, error in
@@ -137,7 +136,7 @@ class SessionTests: XCTestCase {
 
     func testMultiple() {
         let expectation = self.expectation(description: "Network")
-        let session = Session(cassetteName: "multiple")
+        let session = Session(cassetteName: "multiple", recordsDirectory: "Resources/Records")
         session.beginRecording()
 
         let apple = self.expectation(description: "Apple")
@@ -182,8 +181,11 @@ class SessionTests: XCTestCase {
         let delegate = Delegate(expectation: expectation)
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        let session = Session(cassetteName: "example", backingSession: backingSession)
-        session.recordingEnabled = false
+        let session = Session(
+            cassetteName: "example",
+            recordsDirectory: "Resources/Records",
+            backingSession: backingSession
+        )
 
         let task = session.dataTask(with: request)
         task.resume()
@@ -208,8 +210,11 @@ class SessionTests: XCTestCase {
         let delegate = Delegate(expectation: expectation)
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        let session = Session(cassetteName: "example", backingSession: backingSession)
-        session.recordingEnabled = false
+        let session = Session(
+            cassetteName: "example",
+            recordsDirectory: "Resources/Records",
+            backingSession: backingSession
+        )
 
         let task = session.dataTask(with: request)
         task.resume()
@@ -224,7 +229,11 @@ class SessionTests: XCTestCase {
 
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config)
-        let session = Session(cassetteName: "failed-request-example", backingSession: backingSession)
+        let session = Session(
+            cassetteName: "failed-request-example",
+            recordsDirectory: "Resources/Records",
+            backingSession: backingSession
+        )
 
         let task = session.dataTask(with: request) { (_, urlResponse, _) in
             XCTAssertNotEqual(200, (urlResponse as? Foundation.HTTPURLResponse)?.statusCode)
